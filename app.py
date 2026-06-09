@@ -205,6 +205,6 @@ def main(page: ft.Page):
         ft.Text("Powered by ChiliTay Tools v1.0", size=11, color="#444")
     )
 
-# Run as a web app in your phone's browser
+ # Run as a web app in your phone's browser
 if __name__ == "__main__":
-    ft.run(target=main, view=ft.AppView.WEB_BROWSER)
+    ft.run(main, view=ft.AppView.WEB_BROWSER)
