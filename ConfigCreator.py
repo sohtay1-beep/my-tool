@@ -1,4 +1,17 @@
-import sys
+import os
+import subprocess
+import platform
+
+def copy_to_termux_clipboard(text):
+    """Try to automatically copy results to Android clipboard using termux-api"""
+    try:
+        if platform.system().lower() != 'windows':
+            process = subprocess.Popen(['termux-clipboard-set'], stdin=subprocess.PIPE, text=True)
+            process.communicate(input=text)
+            return True
+    except FileNotFoundError:
+        pass
+    return False
 
 def main():
     print("\n" + "="*40)
@@ -13,24 +26,20 @@ def main():
         print("[-] Error: Config link cannot be empty.")
         return
 
-    # Parsing the config to inject clean IPs
     try:
-        # standard links have format: protocol://uuid@address:port?...#remarks
         if "://" not in main_config or "@" not in main_config:
-            print("[-] Error: Invalid config format. Make sure it contains '://' and '@'.")
+            print("[-] Error: Invalid config format.")
             return
             
         prefix, rest = main_config.split("://", 1)
         credentials, connection_details = rest.split("@", 1)
         
-        # Check if there is a port specified
         if ":" not in connection_details:
-            print("[-] Error: Could not find port/address structure in link.")
+            print("[-] Error: Could not find port/address structure.")
             return
             
         old_address, after_address = connection_details.split(":", 1)
         
-        # Split the remaining part into parameters and remark/name
         if "#" in after_address:
             params_and_port, old_remark = after_address.split("#", 1)
         else:
@@ -50,21 +59,37 @@ def main():
         print("[-] Error: No clean IPs provided.")
         return
 
-    print(f"\n[*] Generating {len(clean_ips)} configs...\n")
-    print("="*40)
-    print("🏆 YOUR NEW CONFIGS:")
-    print("="*40 + "\n")
+    print(f"\n[*] Generating {len(clean_ips)} configs...")
+    
+    generated_configs = []
 
     # 3. Generate new configs
     for index, ip in enumerate(clean_ips, 1):
         new_remark = f"{old_remark}-CleanIP-{index:02d}"
-        # Reconstruct the link with the clean IP and updated remark
         new_config = f"{prefix}://{credentials}@{ip}:{params_and_port}#{new_remark}"
-        print(f"[+] Config {index:02d}:\n{new_config}\n")
-        
-    print("="*40)
-    print("[*] Done! Copy and paste them into your VPN client.")
-    print("="*40 + "\n")
+        generated_configs.append(new_config)
+
+    # Save to a text file for permanent access
+    output_file = "configs.txt"
+    all_configs_text = "\n".join(generated_configs)
+    with open(output_file, "w", encoding="utf-8") as f:
+        f.write(all_configs_text)
+    
+    print(f"[+] Successfully saved all configs to '{output_file}'")
+
+    print("\n" + "="*40)
+    print("📋 QUICK COPY BOX (Double click to select all):")
+    print("-" * 40)
+    print(all_configs_text)
+    print("-" * 40)
+
+    # 4. Try Auto-Copy to Clipboard
+    if copy_to_termux_clipboard(all_configs_text):
+        print("🚀 [SUCCESS] All configs automatically copied to your clipboard!")
+        print("💡 Just open your VPN app and select 'Import from clipboard'.")
+    else:
+        print("💡 Tip: Double click the box above to select and copy all configs manually.")
+    print()
 
 if __name__ == "__main__":
     main()
