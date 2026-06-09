@@ -25,17 +25,6 @@ def ping_ip(ip, timeout_ms):
         pass
     return ip_str, None
 
-def copy_to_termux_clipboard(text):
-    """Try to automatically copy results to Android clipboard using termux-api"""
-    try:
-        if platform.system().lower() != 'windows':
-            process = subprocess.Popen(['termux-clipboard-set'], stdin=subprocess.PIPE, text=True)
-            process.communicate(input=text)
-            return True
-    except FileNotFoundError:
-        pass
-    return False
-
 def main():
     print("\n" + "="*40)
     print("      ⚡ FASTLY & VERCEL SCANNER ⚡")
@@ -108,18 +97,10 @@ def main():
     # Extract ONLY clean IPs separated by space
     clean_ips_line = " ".join([ip for ip, _ in healthy_ips[:15]])
 
-    # 1. Show Clean Copy Box
     print("\n📋 QUICK COPY BOX (Double click to select all):")
     print("-" * 40)
     print(clean_ips_line)
-    print("-" * 40)
-
-    # 2. Try Auto-Copy
-    if copy_to_termux_clipboard(clean_ips_line):
-        print("🚀 [SUCCESS] Top IPs automatically copied to your phone's clipboard!")
-    else:
-        print("💡 Tip: Install 'termux-api' app from F-Droid to enable automatic copy.")
-    print()
+    print("-" * 40 + "\n")
 
 if __name__ == "__main__":
     main()
