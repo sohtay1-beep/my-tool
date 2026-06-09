@@ -25,12 +25,22 @@ def ping_ip(ip, timeout_ms):
         pass
     return ip_str, None
 
+def copy_to_termux_clipboard(text):
+    """Try to automatically copy results to Android clipboard using termux-api"""
+    try:
+        if platform.system().lower() != 'windows':
+            process = subprocess.Popen(['termux-clipboard-set'], stdin=subprocess.PIPE, text=True)
+            process.communicate(input=text)
+            return True
+    except FileNotFoundError:
+        pass
+    return False
+
 def main():
     print("\n" + "="*40)
     print("      ⚡ FASTLY & VERCEL SCANNER ⚡")
     print("="*40)
     
-    # 1. IP Input
     raw_ranges = input("IP Ranges (CIDR): ")
     processed_ranges = raw_ranges.replace(",", " ").split()
     
@@ -38,21 +48,18 @@ def main():
         print("[-] Error: No IP ranges entered.")
         return
 
-    # 2. Threads Input
     threads_input = input("Threads [Default 50]: ")
     try:
         max_threads = int(threads_input) if threads_input.strip() else 50
     except ValueError:
         max_threads = 50
 
-    # 3. Timeout Input
     timeout_input = input("Timeout MS [Default 1500]: ")
     try:
         timeout_ms = int(timeout_input) if timeout_input.strip() else 1500
     except ValueError:
         timeout_ms = 1500
 
-    # Extract IPs
     all_ips = []
     for r in processed_ranges:
         try:
@@ -91,11 +98,28 @@ def main():
     print("="*40)
     
     if not healthy_ips:
-        print("[-] No clean IP found on your network.")
+        print("[-] No clean IP found on your network.\n")
+        return
+        
+    for index, (ip, ping) in enumerate(healthy_ips[:15], 1):
+        print(f" {index:02d} -> {ip:<15} | {ping} ms")
+    print("="*40)
+
+    # Extract ONLY clean IPs separated by space
+    clean_ips_line = " ".join([ip for ip, _ in healthy_ips[:15]])
+
+    # 1. Show Clean Copy Box
+    print("\n📋 QUICK COPY BOX (Double click to select all):")
+    print("-" * 40)
+    print(clean_ips_line)
+    print("-" * 40)
+
+    # 2. Try Auto-Copy
+    if copy_to_termux_clipboard(clean_ips_line):
+        print("🚀 [SUCCESS] Top IPs automatically copied to your phone's clipboard!")
     else:
-        for index, (ip, ping) in enumerate(healthy_ips[:15], 1):
-            print(f" {index:02d} -> {ip:<15} | {ping} ms")
-    print("="*40 + "\n")
+        print("💡 Tip: Install 'termux-api' app from F-Droid to enable automatic copy.")
+    print()
 
 if __name__ == "__main__":
     main()
