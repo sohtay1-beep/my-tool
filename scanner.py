@@ -26,63 +26,51 @@ def ping_ip(ip, timeout_ms):
     return ip_str, None
 
 def main():
-    print("="*50)
-    print("📡 اسکنر هوشمند و تعاملی رنج آی‌پي")
-    print("="*50)
+    print("\n" + "="*40)
+    print("      ⚡ FASTLY & VERCEL SCANNER ⚡")
+    print("="*40)
     
-    # ۱. دریافت رنج‌های آی‌پی از کاربر
-    print("\n🔹 رنج‌های آی‌پی (CIDR) مورد نظرت را وارد کن.")
-    print("💡 نکته: می‌توانی چند رنج را با «کاما ,» یا «فاصله» از هم جدا کنی.")
-    raw_ranges = input("✍️ رنج‌ها: ")
-    
-    # تمیزکاری ورودی کاربر و تبدیل به لیست
+    # 1. IP Input
+    raw_ranges = input("IP Ranges (CIDR): ")
     processed_ranges = raw_ranges.replace(",", " ").split()
     
     if not processed_ranges:
-        print("❌ هیچ رنجی وارد نشد. برنامه بسته می‌شود.")
+        print("[-] Error: No IP ranges entered.")
         return
 
-    # ۲. تنظیم سرعت (تعداد تردها)
-    print("\n🔹 سرعت اسکن (تعداد درخواست‌های همزمان) را مشخص کن.")
-    print("💡 پیشنهاد: برای گوشی و اینترنت معمولی 50، برای اینترنت قوی 100")
+    # 2. Threads Input
+    threads_input = input("Threads [Default 50]: ")
     try:
-        max_threads = input("✍️ تعداد تسک همزمان [پیش‌فرض 50]: ")
-        max_threads = int(max_threads) if max_threads.strip() else 50
+        max_threads = int(threads_input) if threads_input.strip() else 50
     except ValueError:
-        print("⚠️ ورودی نامعتبر بود. سرعت روی 50 تنظیم شد.")
         max_threads = 50
 
-    # ۳. تنظیم حداکثر زمان انتظار (Timeout)
-    print("\n🔹 حداکثر زمان انتظار برای پاسخ هر آی‌پی (به میلی‌ثانیه)؟")
-    print("💡 پیشنهاد: 1000 یا 1500 (آی‌پی‌های با پینگ بالاتر از این حذف می‌شوند)")
+    # 3. Timeout Input
+    timeout_input = input("Timeout MS [Default 1500]: ")
     try:
-        timeout_ms = input("✍️ تایم‌اوت [پیش‌فرض 1500]: ")
-        timeout_ms = int(timeout_ms) if timeout_ms.strip() else 1500
+        timeout_ms = int(timeout_input) if timeout_input.strip() else 1500
     except ValueError:
-        print("⚠️ ورودی نامعتبر بود. تایم‌اوت روی 1500 تنظیم شد.")
         timeout_ms = 1500
 
-    # استخراج آی‌پی‌ها
-    print("\n⏳ در حال پردازش و استخراج آی‌پی‌ها...")
+    # Extract IPs
     all_ips = []
     for r in processed_ranges:
         try:
             network = ipaddress.ip_network(r.strip(), strict=False)
             all_ips.extend(list(network.hosts()))
         except ValueError:
-            print(f"⚠️ رنج نامعتبر سکیپ شد: {r}")
+            print(f"[-] Invalid range skipped: {r}")
             
     total_ips = len(all_ips)
     if total_ips == 0:
-        print("❌ هیچ آی‌پی معتبری برای اسکن یافت نشد!")
+        print("[-] Error: No valid IPs found.")
         return
         
-    print(f"🔍 تعداد کل آی‌پی‌های استخراج شده: {total_ips}")
-    print(f"⚡ شروع اسکن با {max_threads} رشته همزمان... لطفا منتظر بمانید.\n")
+    print(f"\n[*] Total IPs: {total_ips}")
+    print(f"[*] Scanning with {max_threads} threads...\n")
     
     healthy_ips = []
     
-    # اجرای همزمان پینگ‌ها
     with concurrent.futures.ThreadPoolExecutor(max_workers=max_threads) as executor:
         results = executor.map(lambda ip: ping_ip(ip, timeout_ms), all_ips)
         
@@ -90,25 +78,24 @@ def main():
         for ip_str, ping_time in results:
             counter += 1
             if counter % 50 == 0 or counter == total_ips:
-                print(f"🔄 پیشرفت: {counter}/{total_ips} آی‌پی تست شد...")
+                print(f"[>] Progress: {counter}/{total_ips}")
                 
             if ping_time is not None:
                 healthy_ips.append((ip_str, ping_time))
-                print(f"✅ پیدا شد: {ip_str} | پینگ: {ping_time}ms")
+                print(f" [+] Found: {ip_str:<15} | Ping: {ping_time}ms")
 
-    # مرتب‌سازی نتایج بر اساس کمترین پینگ
     healthy_ips.sort(key=lambda x: x[1])
 
-    print("\n" + "="*50)
-    print("🏆 نتایج نهایی (۱۵ آی‌پی برتر با کمترین پینگ):")
-    print("="*50)
+    print("\n" + "="*40)
+    print("🏆 TOP 15 BEST IPs:")
+    print("="*40)
     
     if not healthy_ips:
-        print("❌ متاسفانه هیچ آی‌پی سالمی با شرایط شما پیدا نشد.")
+        print("[-] No clean IP found on your network.")
     else:
         for index, (ip, ping) in enumerate(healthy_ips[:15], 1):
-            print(f"{index:02d}. IP: {ip:<15} | Ping: {ping} ms")
-    print("="*50)
+            print(f" {index:02d} -> {ip:<15} | {ping} ms")
+    print("="*40 + "\n")
 
 if __name__ == "__main__":
     main()
